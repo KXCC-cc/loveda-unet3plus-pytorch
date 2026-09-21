@@ -54,9 +54,13 @@ BN、Decoder GroupNorm、SGD/poly。有效 batch=4 时启用线性 LR 缩放，�
 “预训练 Encoder + 512 crop”的收益。之后按顺序运行：
 
 1. `loveda_4060_resnet34.yaml`
-2. `resnet_pretrained_512_multiscale.yaml`
-3. `resnet_pretrained_512_classaware.yaml`
-4. 对最佳 checkpoint 做六尺度最终评估
+2. `loveda_4060_resnet50.yaml`（只更换 backbone，作为公平对照）
+3. `resnet_pretrained_512_multiscale.yaml`
+4. `resnet_pretrained_512_classaware.yaml`
+5. 对最佳 checkpoint 做六尺度最终评估
+
+已完成的 ResNet34 基准不会被后续实验覆盖。验证集、官方 Test 成绩、权重哈希、
+Git 标签和本机归档位置记录在 `docs/resnet34_reference.md`。
 
 ## 项目结构
 
@@ -68,6 +72,7 @@ models/
   unet3plus_resnet.py    新 ResNet U-Net 3+
   backbones/resnet.py    segmentation stem 与 FrozenBatchNorm2d
 scripts/                 可直接运行的训练/评估脚本
+docs/                    已确认实验结果与本地归档索引
 tests/                   shape、Dataset、Loss 测试
 tools/                   checkpoint 评估、显存测试、统计和 run 对比
 utils/                   数据、增强、损失、指标、checkpoint、实验记录
@@ -203,6 +208,17 @@ cd /home/kxcc/unet3
 bash scripts/train_4060_resnet34.sh
 ```
 
+RTX 4060 上的 ResNet50 公平对照命令：
+
+```bash
+cd /home/kxcc/unet3
+bash scripts/train_4060_resnet50.sh
+```
+
+该配置沿用 ResNet34 的 512 crop、CE + Dice、SGD/poly、batch=1、累积 4 次和
+单尺度训练，只把 ImageNet Encoder 换成 ResNet50。它会写入独立目录
+`runs/resnet50_pretrained_512_randomcrop/`，并从 ImageNet 权重开始新实验。
+
 配置覆盖示例：
 
 ```bash
@@ -264,6 +280,10 @@ runs/<run_name>/
   confusion_matrix.csv
   confusion_matrix.png
 ```
+
+为避免误删已有成果，新训练遇到非空输出目录会立即报错。断点续训时，
+`--resume` checkpoint 必须位于当前 `run.output_dir` 中；如需开始另一组实验，必须
+指定新的 run 目录。
 
 `config.json` 记录 Git commit、PyTorch/CUDA/GPU、seed、实际 weights enum、crop、scale、
 optimizer、scheduler、physical/effective batch 和解析后的 LR。checkpoint 保存 model、

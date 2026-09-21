@@ -215,6 +215,32 @@ def _write_metrics_header(path: Path, resume: bool) -> None:
         csv.DictWriter(file, fieldnames=metric_fieldnames()).writeheader()
 
 
+def _prepare_output_directory(output_dir: Path, resume: Path | None) -> None:
+    """在任何实验文件写入前检查输出目录，避免误覆盖已有 run。"""
+    if resume is not None:
+        resume_path = resume.resolve()
+        if not resume_path.is_file():
+            raise FileNotFoundError(f"resume checkpoint 不存在：{resume_path}")
+        if resume_path.parent != output_dir:
+            raise ValueError(
+                "resume checkpoint 必须位于本次 run 的 output_dir 中："
+                f"checkpoint={resume_path}，output_dir={output_dir}"
+            )
+        return
+
+    if output_dir.exists():
+        existing_items = sorted(path.name for path in output_dir.iterdir())
+        if existing_items:
+            preview = ", ".join(existing_items[:8])
+            if len(existing_items) > 8:
+                preview += ", ..."
+            raise FileExistsError(
+                "新训练拒绝写入非空实验目录，以免覆盖已有权重和指标："
+                f"{output_dir}（已有：{preview}）。请修改 run.output_dir；"
+                "如需断点续训，请同时使用原 output_dir 和 --resume。"
+            )
+
+
 def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
     seed = int(config.get("seed", 42))
     _seed_everything(seed)
@@ -225,6 +251,7 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
     torch.backends.cudnn.benchmark = bool(runtime.get("cudnn_benchmark", True))
 
     output_dir = Path(config["run"]["output_dir"]).resolve()
+    _prepare_output_directory(output_dir, resume)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "curves").mkdir(exist_ok=True)
     (output_dir / "predictions").mkdir(exist_ok=True)
