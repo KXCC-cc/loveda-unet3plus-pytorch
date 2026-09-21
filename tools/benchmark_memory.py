@@ -13,7 +13,7 @@ import torch
 
 from models import UNet3PlusResNet
 from utils.device import autocast_context, create_grad_scaler
-from utils.losses import CrossEntropyLoss, deep_supervision_loss
+from utils.losses import CombinedLoss, deep_supervision_loss
 
 
 def benchmark(backbone: str, batch_size: int, image_size: int, pretrained: bool) -> dict:
@@ -33,7 +33,8 @@ def benchmark(backbone: str, batch_size: int, image_size: int, pretrained: bool)
         optimizer.zero_grad(set_to_none=True)
         with autocast_context(torch.device("cuda"), True):
             outputs = model(images, return_aux=True)
-            criterion = CrossEntropyLoss().cuda()
+            # 与 4060 performance profile 一致：主头和辅助头均使用 CE + Dice。
+            criterion = CombinedLoss(ce_weight=1.0, dice_weight=1.0).cuda()
             loss = deep_supervision_loss(outputs, masks, criterion, (0.5, 0.25, 0.125, 0.0625))
         scaler.scale(loss).backward()
         scaler.step(optimizer)

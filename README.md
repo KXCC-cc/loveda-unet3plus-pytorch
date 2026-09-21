@@ -316,8 +316,8 @@ python -m unittest discover -s tests -v
 python -m tools.benchmark_memory --output memory_benchmark.json
 ```
 
-在本机 RTX 4060 Laptop 8GB、PyTorch 2.9.1、AMP、512 输入、包含五头 CE 反向和
-一次 SGD update 的实测：
+`memory_benchmark.json` 保存的是重构初期在本机 RTX 4060 Laptop 8GB、PyTorch
+2.9.1、AMP、512 输入下，五头 CE 反向和一次 SGD update 的实测：
 
 | Backbone | batch | 结果 | peak allocated |
 |---|---:|---|---:|
@@ -325,6 +325,10 @@ python -m tools.benchmark_memory --output memory_benchmark.json
 | ResNet34 | 2 | 完成，但显存余量很小 | 7.70 GiB |
 | ResNet50 | 1 | 完成，但余量较小 | 6.88 GiB |
 | ResNet50 | 2 | OOM | — |
+
+当前显存工具已改为与 performance profile 相同的五头 CE + Dice。ResNet50、batch=1
+复核通过，peak allocated 为 6.88 GiB，peak reserved 为 8.41 GiB；因此正式配置仍固定
+physical batch=1，并通过梯度累积得到 effective batch=4。
 
 WSL 的 reserved/共享内存统计可能高于显卡物理容量，因此 batch2“完成”不代表适合
 长训练；显存碎片、DataLoader 和验证缓存都会降低余量。第一轮固定推荐 ResNet34、
