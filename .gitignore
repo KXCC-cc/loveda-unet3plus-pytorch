@@ -4,6 +4,7 @@ demo_assets/
 
 # 模型权重、训练记录、预测图和诊断结果均保留在本机。
 checkpoints*/
+runs/
 *.pth
 *.pt
 *.ckpt
@@ -37,3 +38,6 @@ torch_test_err.txt
 *.tmp
 *.temp
 *~
+
+# LoveDA 在线评测提交产物。
+submissions/

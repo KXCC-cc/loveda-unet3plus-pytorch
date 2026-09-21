@@ -124,3 +124,57 @@ def sliding_window_logits(
         raise RuntimeError("滑窗存在未覆盖像素，请检查 tile_size 与 stride。")
     logits_sum.div_(coverage)
     return logits_sum[:, :, :original_height, :original_width].contiguous().cpu()
+
+
+@torch.inference_mode()
+def multi_scale_sliding_window_logits(
+    model: torch.nn.Module,
+    image: torch.Tensor,
+    scales: tuple[float, ...],
+    tile_size: Tuple[int, int],
+    stride: Tuple[int, int],
+    device: torch.device,
+    amp_enabled: bool,
+    tile_batch_size: int,
+    horizontal_flip: bool = False,
+    accumulate_on_device: bool = False,
+) -> torch.Tensor:
+    """各尺度（及可选水平镜像）先恢复原尺寸，再平均 logits。
+
+    最终 argmax 由调用方执行，严禁缩放离散类别编号。
+    """
+    if not scales or any(scale <= 0 for scale in scales):
+        raise ValueError("scales 必须包含正数。")
+    original_size = image.shape[-2:]
+    logits_sum = None
+    count = 0
+    for scale in scales:
+        scaled_size = (
+            max(1, round(original_size[0] * scale)),
+            max(1, round(original_size[1] * scale)),
+        )
+        scaled = F.interpolate(
+            image.unsqueeze(0), size=scaled_size, mode="bilinear", align_corners=False
+        ).squeeze(0).contiguous()
+        variants = ((scaled, False),)
+        if horizontal_flip:
+            variants += ((torch.flip(scaled, dims=(2,)).contiguous(), True),)
+        for variant, flipped in variants:
+            logits = sliding_window_logits(
+                model=model,
+                image=variant,
+                tile_size=tile_size,
+                stride=stride,
+                device=device,
+                amp_enabled=amp_enabled,
+                tile_batch_size=tile_batch_size,
+                accumulate_on_device=accumulate_on_device,
+            )
+            if flipped:
+                logits = torch.flip(logits, dims=(3,))
+            logits = F.interpolate(
+                logits, size=original_size, mode="bilinear", align_corners=False
+            )
+            logits_sum = logits if logits_sum is None else logits_sum + logits
+            count += 1
+    return logits_sum / count

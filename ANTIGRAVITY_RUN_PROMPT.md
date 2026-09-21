@@ -1,4 +1,6 @@
-# 给 Antigravity 的执行提示词
+# 给 Antigravity 的执行提示词（旧 baseline，禁止直接用于新 ResNet 实验）
+
+> 当前 ResNet34/50 U-Net 3+ 的运行方式以 `README.md` 和 `scripts/` 为准。
 
 下面的提示词用于用户随后粘贴给 Antigravity；文件本身没有执行任何检查或训练。
 

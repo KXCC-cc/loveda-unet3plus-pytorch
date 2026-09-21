@@ -1,4 +1,7 @@
-# LoveDA U-Net 3+ 接管提示词
+# LoveDA U-Net 3+ 接管提示词（旧 baseline 历史记录）
+
+> 本文件记录 ResNet 重构前的 scratch baseline。当前入口、配置与命令以
+> `README.md` 为准；旧训练入口已保存在 `train_legacy.py`。
 
 请接管我的 PyTorch U-Net 3+ 遥感七分类项目。下面是交接信息，请先阅读实际源码和已保存结果，再决定下一步，以磁盘中的最新文件为准。你的目标是提高完整验证集的真实分割效果，同时控制实验耗时，并保持代码适合学习。
 

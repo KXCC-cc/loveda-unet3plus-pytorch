@@ -158,3 +158,42 @@ def save_checkpoint(path: Path, checkpoint: dict[str, Any]) -> None:
     temporary_path = path.with_suffix(path.suffix + ".tmp")
     torch.save(checkpoint, temporary_path)
     temporary_path.replace(path)
+
+
+def load_experiment_checkpoint(
+    path: Path,
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    scheduler: Any,
+    scaler: Any,
+    current_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """恢复新训练引擎在 update 边界保存的完整状态。"""
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    required = {
+        "model_state_dict",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "epoch",
+        "micro_step",
+        "optimizer_step",
+        "best_miou",
+        "config",
+    }
+    missing = required - checkpoint.keys()
+    if missing:
+        raise ValueError(f"checkpoint 缺少字段：{sorted(missing)}")
+    if current_config is not None:
+        saved_config = checkpoint["config"]
+        for section in ("model", "data", "loss", "optimizer", "scheduler", "training"):
+            if saved_config.get(section) != current_config.get(section):
+                raise ValueError(
+                    f"resume 配置不一致：{section}。请使用原实验 config.json/YAML。"
+                )
+    model.load_state_dict(checkpoint["model_state_dict"], strict=True)
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    scaler_state = checkpoint.get("scaler_state_dict")
+    if scaler.is_enabled() and scaler_state:
+        scaler.load_state_dict(scaler_state)
+    return checkpoint

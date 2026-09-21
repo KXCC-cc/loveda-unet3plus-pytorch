@@ -1,7 +1,7 @@
 """LoveDA 数据读取与训练、推理共用的图像预处理。"""
 
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -42,6 +42,16 @@ class LoveDADataset(Dataset):
         augment: Optional[bool] = None,
         samples_per_image: int = 1,
         color_jitter: float = 0.0,
+        train_scales: Sequence[float] = (1.0,),
+        horizontal_flip_probability: float = 0.5,
+        vertical_flip_probability: float = 0.5,
+        rotate90_probability: float = 1.0,
+        class_aware_crop_probability: float = 0.0,
+        class_aware_classes: Sequence[int] = (1, 2, 3, 4),
+        min_target_pixels: int = 512,
+        max_crop_attempts: int = 8,
+        augmentation_mode: str = "independent",
+        one_of_probability: float = 0.75,
     ) -> None:
         self.root = Path(root)
         if split not in ("Train", "Val", "Test"):
@@ -72,6 +82,35 @@ class LoveDADataset(Dataset):
             raise ValueError("Val/Test 不允许颜色增强。")
         self.samples_per_image = samples_per_image
         self.color_jitter = float(color_jitter)
+        self.train_scales = tuple(float(value) for value in train_scales)
+        if not self.train_scales or any(value <= 0 for value in self.train_scales):
+            raise ValueError("train_scales 必须包含正数。")
+        for name, probability in (
+            ("horizontal_flip_probability", horizontal_flip_probability),
+            ("vertical_flip_probability", vertical_flip_probability),
+            ("rotate90_probability", rotate90_probability),
+            ("class_aware_crop_probability", class_aware_crop_probability),
+        ):
+            if not 0.0 <= probability <= 1.0:
+                raise ValueError(f"{name} 必须位于 [0,1]。")
+        if any(value < 0 or value >= 7 for value in class_aware_classes):
+            raise ValueError("class_aware_classes 使用训练索引 0~6。")
+        if min_target_pixels < 1 or max_crop_attempts < 1:
+            raise ValueError("min_target_pixels 和 max_crop_attempts 必须为正整数。")
+        self.horizontal_flip_probability = float(horizontal_flip_probability)
+        self.vertical_flip_probability = float(vertical_flip_probability)
+        self.rotate90_probability = float(rotate90_probability)
+        self.class_aware_crop_probability = float(class_aware_crop_probability)
+        # Dataset 对外使用训练索引，变换内部读取原始 mask，故统一加 1。
+        self.class_aware_raw_classes = tuple(int(value) + 1 for value in class_aware_classes)
+        self.min_target_pixels = int(min_target_pixels)
+        self.max_crop_attempts = int(max_crop_attempts)
+        if augmentation_mode not in ("independent", "one_of"):
+            raise ValueError("augmentation_mode 仅支持 independent 或 one_of。")
+        if not 0.0 <= one_of_probability <= 1.0:
+            raise ValueError("one_of_probability 必须位于 [0,1]。")
+        self.augmentation_mode = augmentation_mode
+        self.one_of_probability = float(one_of_probability)
         self.has_masks = split != "Test"
         self.samples: list[Tuple[Path, Optional[Path]]] = []
 
@@ -152,6 +191,16 @@ class LoveDADataset(Dataset):
             spatial_mode=self.spatial_mode,
             augment=self.augment,
             color_jitter=self.color_jitter,
+            train_scales=self.train_scales,
+            horizontal_flip_probability=self.horizontal_flip_probability,
+            vertical_flip_probability=self.vertical_flip_probability,
+            rotate90_probability=self.rotate90_probability,
+            class_aware_crop_probability=self.class_aware_crop_probability,
+            class_aware_raw_classes=self.class_aware_raw_classes,
+            min_target_pixels=self.min_target_pixels,
+            max_crop_attempts=self.max_crop_attempts,
+            augmentation_mode=self.augmentation_mode,
+            one_of_probability=self.one_of_probability,
         )
         image_tensor = preprocess_image(image)  # 只归一化，不再次缩放。
         if not self.has_masks:

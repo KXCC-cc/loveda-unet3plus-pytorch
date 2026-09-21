@@ -1,6 +1,9 @@
-# 项目已迁移到 WSL；此文件只声明依赖，不代表本次已安装或升级环境。
-torch>=2.0
+# WSL 实验环境固定版本，避免 torchvision 与 torch ABI 不匹配。
+torch==2.9.1
+torchvision==0.24.1
+PyYAML>=6.0
 Pillow>=9.1
 numpy>=1.23
 tqdm>=4.64
 matplotlib>=3.9
+Flask>=3.0,<4
