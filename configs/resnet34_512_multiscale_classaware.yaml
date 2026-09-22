@@ -1,0 +1,4 @@
+_base_: resnet_pretrained_512_classaware.yaml
+run:
+  name: resnet34_512_multiscale_classaware
+  output_dir: runs/resnet34_512_multiscale_classaware

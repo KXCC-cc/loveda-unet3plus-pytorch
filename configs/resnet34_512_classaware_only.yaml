@@ -1,0 +1,10 @@
+_base_: loveda_4060_resnet34.yaml
+run:
+  name: resnet34_512_classaware_only
+  output_dir: runs/resnet34_512_classaware_only
+data:
+  class_aware_crop:
+    probability: 0.5
+    classes: [1, 2, 3, 4]
+    min_target_pixels: 512
+    max_attempts: 8

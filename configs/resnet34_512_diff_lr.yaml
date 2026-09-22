@@ -1,0 +1,8 @@
+_base_: loveda_4060_resnet34.yaml
+run:
+  name: resnet34_512_diff_lr
+  output_dir: runs/resnet34_512_diff_lr
+optimizer:
+  differential_lr:
+    encoder_lr: 0.0005
+    decoder_lr: 0.0025

@@ -1,0 +1,9 @@
+_base_: loveda_4060_resnet34.yaml
+run:
+  name: resnet34_512_focal
+  output_dir: runs/resnet34_512_focal
+loss:
+  ce_weight: 0.5
+  dice_weight: 1.0
+  focal_weight: 0.5
+  focal_gamma: 2.0
