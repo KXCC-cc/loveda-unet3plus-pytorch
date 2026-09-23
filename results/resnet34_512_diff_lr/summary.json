@@ -1,0 +1,57 @@
+{
+  "experiment_id": "B3",
+  "name": "resnet34_512_diff_lr",
+  "status": "complete",
+  "evaluation": "LoveDA full Validation Set, single-scale 1.0",
+  "source": {
+    "branch": "experiment/resnet34-ablations",
+    "commit": "f53ed3db17253686ea1dc8259f7182208397ea07"
+  },
+  "environment": {
+    "pytorch": "2.9.1+cu126",
+    "cuda_runtime": "12.6",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU"
+  },
+  "training": {
+    "backbone": "resnet34",
+    "weights": "IMAGENET1K_V1",
+    "crop_size": [
+      512,
+      512
+    ],
+    "cat_channels": 64,
+    "physical_batch": 1,
+    "accumulation_steps": 4,
+    "effective_batch": 4,
+    "max_optimizer_steps": 15000,
+    "encoder_lr": 0.0005,
+    "decoder_lr": 0.0025,
+    "scheduler": {
+      "name": "poly",
+      "power": 0.9
+    },
+    "amp": true
+  },
+  "result": {
+    "best_epoch": 24,
+    "best_miou": 0.444890628872136,
+    "mean_dice": 0.6085134049826821,
+    "val_main_loss": 1.7538626390777712,
+    "per_class_iou": {
+      "background": 0.5088735331230191,
+      "building": 0.5500087979190241,
+      "road": 0.45039266907758263,
+      "water": 0.525886414243368,
+      "barren": 0.2338488037133417,
+      "forest": 0.38216310366315687,
+      "agricultural": 0.46306108036545923
+    },
+    "baseline_reference_miou": 0.4669311579969285,
+    "delta_vs_baseline": -0.02204052912479254
+  },
+  "artifacts": {
+    "metrics": "metrics.csv",
+    "confusion_matrix": "confusion_matrix.csv",
+    "checkpoint_committed": false
+  }
+}

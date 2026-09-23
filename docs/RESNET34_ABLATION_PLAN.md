@@ -46,3 +46,17 @@
 ## 运行顺序
 
 推荐先运行 **B3 Differential LR only**。它不增加数据处理开销，且直接针对 ImageNet 预训练 encoder 与随机初始化 decoder 的优化速度差异。随后依次运行 B2、B1、B4。B5 应放在确认单项策略有效之后。
+
+## 已完成结果
+
+### B3 Differential LR only
+
+- 状态：完成，15000 optimizer updates
+- 最佳/最终 epoch：24
+- Full-Val mIoU：0.444891
+- mean Dice：0.608513
+- val main loss：1.753863
+- 相对 B0 baseline 0.466931：下降 0.022041（约 2.20 个百分点）
+- 结论：当前 encoder LR 0.0005、decoder LR 0.0025 的差分学习率未提升 baseline，不建议作为最终主模型配置。
+
+完整逐轮指标和混淆矩阵保存在 results/resnet34_512_diff_lr/。权重、预测图片和数据集不进入 Git 仓库。
